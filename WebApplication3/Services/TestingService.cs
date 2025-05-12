@@ -1,4 +1,6 @@
-﻿using System.Globalization;
+﻿using System.Data.Common;
+using System.Globalization;
+using System.Transactions;
 using test1template.Models;
 using test1template.Services;
 using Microsoft.Data.SqlClient;
@@ -7,7 +9,7 @@ namespace WorkshopApi.Services
 {
     public class TestingService : ITestingService
     {
-        private readonly string _connectionString = "Data Source=(localdb)\\\\\\\\MSSQLLocalDB;Initial Catalog=apbd;Integrated Security=True;Connect Timeout=30;Encrypt=False;Trust Server Certificate=False;Application Intent=ReadWrite;Multi Subnet Failover=False";
+        private readonly string _connectionString = "Data Source=db-mssql;Initial Catalog=2019SBD;Integrated Security=True;Trust Server Certificate=True";
 
         public async Task<SampleDTO?> GetSample(int id)
         {
@@ -27,7 +29,25 @@ namespace WorkshopApi.Services
         public async Task<string> AddSample(SampleDTO dto)
         {
             using var conn = new SqlConnection(_connectionString);
+            await using SqlCommand command = new SqlCommand();
+            command.Connection = conn;
+            
             await conn.OpenAsync();
+
+            DbTransaction transaction = await conn.BeginTransactionAsync();
+            command.Transaction = transaction as SqlTransaction;
+            try
+            {
+
+                //some code
+                await transaction.CommitAsync();
+            }
+            catch (Exception e)
+            {
+                transaction.Rollback();
+                throw;
+            }
+            
 
 
             // Logic to check constraints and insert
